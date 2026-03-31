@@ -9,13 +9,13 @@ export type User = {
 const users: User[] = [
   {
     userId: 1,
-    username: 'john',
-    password: 'changeme',
+    username: 'Deepak',
+    password: 'chauhan41125',
   },
   {
     userId: 2,
-    username: 'maria',
-    password: 'guess',
+    username: 'Akshita',
+    password: 'akshu',
   },
 ];
 

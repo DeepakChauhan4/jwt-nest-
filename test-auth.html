@@ -1,188 +1,163 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JWT Nest Auth Demo</title>
+    <title>JWT NestJS Auth Demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 20px;
-        }
-
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            box-sizing: border-box;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #0056b3;
-        }
-
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 5px;
-        }
-
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
+        .glass { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.25); border: 1px solid rgba(255, 255, 255, 0.18); }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
     </style>
 </head>
+<body class="gradient-bg min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 glass rounded-3xl p-10 shadow-2xl">
+        <div class="text-center">
+            <div class="mx-auto h-20 w-20 rounded-2xl bg-white bg-opacity-20 flex items-center justify-center mb-4">
+                <i class="fas fa-shield-alt text-3xl text-white"></i>
+            </div>
+            <h2 class="text-3xl font-extrabold text-white">JWT NestJS Auth</h2>
+            <p class="text-white text-sm opacity-90 mt-2">
+                <code class="bg-white bg-opacity-20 px-2 py-1 rounded font-mono">john / changeme</code>
+            </p>
+        </div>
 
-<body>
-    <h1>JWT Nest Auth Test</h1>
-    <p>Test users: john / changeme | maria / guess</p>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-white mb-2 flex items-center">
+                    <i class="fas fa-user mr-2 w-4"></i>Username
+                </label>
+                <input id="username" type="text" value="john"
+                    class="w-full px-4 py-3 rounded-xl border border-white border-opacity-30 bg-white bg-opacity-10 text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-white mb-2 flex items-center">
+                    <i class="fas fa-lock mr-2 w-4"></i>Password
+                </label>
+                <input id="password" type="password" value="changeme"
+                    class="w-full px-4 py-3 rounded-xl border border-white border-opacity-30 bg-white bg-opacity-10 text-white placeholder-white placeholder-opacity-50 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent">
+            </div>
+            <button onclick="login()"
+                class="w-full flex items-center justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-xl text-white bg-white bg-opacity-20 hover:bg-opacity-30 transition-all">
+                <i class="fas fa-sign-in-alt mr-2"></i>Login
+            </button>
+            <button onclick="register()"
+                class="w-full flex items-center justify-center py-3 px-4 border border-white border-opacity-30 text-lg font-medium rounded-xl text-white bg-transparent hover:bg-white hover:bg-opacity-10 transition-all">
+                <i class="fas fa-user-plus mr-2"></i>Register New
+            </button>
+        </div>
 
-    <input type="text" id="username" placeholder="Username" value="john">
-    <input type="password" id="password" placeholder="Password" value="changeme">
-    <button onclick="login()">Login</button>
-    <button onclick="register()">Register</button>
-    <input type="text" id="token" placeholder="Paste token here">
-    <button onclick="getProfile()">Get Profile (/auth/me)</button>
-    <button onclick="getUser1()">Get User 1 (/users/1)</button>
+        <div class="pt-6 border-t border-white border-opacity-20">
+            <label class="block text-sm font-medium text-white mb-2">
+                <i class="fas fa-key mr-2"></i>Token (auto-copied)
+            </label>
+            <div class="relative">
+                <input id="token" readonly
+                    class="w-full px-4 py-3 rounded-xl border border-white border-opacity-30 bg-white bg-opacity-10 text-sm font-mono text-white">
+                <button onclick="copyToken()"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-white hover:text-white transition">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+        </div>
 
-    <div id="result"></div>
+        <div class="grid grid-cols-1 gap-3">
+            <button onclick="getUser1()"
+                class="flex flex-col items-center p-4 border border-white border-opacity-30 rounded-xl hover:bg-white hover:bg-opacity-10 transition text-sm">
+                <i class="fas fa-users text-2xl mb-1"></i>User 1
+            </button>
+        </div>
+
+        <div id="result"
+            class="hidden mt-8 p-6 rounded-2xl glass text-sm border border-white border-opacity-20 max-h-96 overflow-auto">
+        </div>
+    </div>
 
     <script>
         let globalToken = '';
 
-        async function login() {
+        async function apiCall(endpoint, options = {}) {
+            const token = document.getElementById('token').value || globalToken;
+            const config = {
+                headers: { 'Content-Type': 'application/json' },
+                ...options
+            };
+            if (token) config.headers.Authorization = `Bearer ${token}`;
+
+            const resultEl = document.getElementById('result');
+            resultEl.classList.remove('hidden', 'success', 'error');
+            resultEl.innerHTML = `<div class="text-center py-8"><i class="fas fa-spinner fa-spin fa-2x text-white mb-4 block"></i><div class="text-white">Loading...</div></div>`;
+
+            try {
+                const response = await fetch(`http://localhost:3000${endpoint}`, config);
+                const data = await response.json().catch(() => ({}));
+                
+                if (response.ok) {
+                    if (data.accessToken) {
+                        globalToken = data.accessToken;
+                        document.getElementById('token').value = globalToken;
+                    }
+                    resultEl.innerHTML = `
+                        <div class="flex items-center mb-4 p-3 rounded-xl bg-green-500 bg-opacity-20 border border-green-400 border-opacity-30">
+                            <i class="fas fa-check-circle text-xl text-green-400 mr-3"></i>
+                            <strong class="text-white text-lg">Success</strong>
+                        </div>
+                        <pre class="bg-black bg-opacity-20 p-4 rounded-xl text-xs overflow-auto font-mono text-white">${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultEl.classList.add('success');
+                } else {
+                    resultEl.innerHTML = `
+                        <div class="flex items-center mb-4 p-3 rounded-xl bg-red-500 bg-opacity-20 border border-red-400 border-opacity-30">
+                            <i class="fas fa-exclamation-triangle text-xl text-red-400 mr-3"></i>
+                            <strong class="text-white text-lg">${response.status} ${response.statusText}</strong>
+                        </div>
+                        <pre class="bg-black bg-opacity-20 p-4 rounded-xl text-xs overflow-auto font-mono text-white">${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultEl.classList.add('error');
+                }
+            } catch (error) {
+                resultEl.innerHTML = `
+                    <div class="flex items-center mb-4 p-3 rounded-xl bg-yellow-500 bg-opacity-20 border border-yellow-400 border-opacity-30">
+                        <i class="fas fa-network-wired text-xl text-yellow-400 mr-3"></i>
+                        <strong class="text-white text-lg">Network Error</strong>
+                    </div>
+                    <div class="text-white text-sm">${error.message}</div>
+                `;
+                resultEl.classList.add('error');
+            }
+        }
+
+        function login() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const resultEl = document.getElementById('result');
-
-            try {
-                resultEl.innerHTML = 'Logging in...';
-                resultEl.className = '';
-
-                const response = await fetch('http://localhost:3000/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    globalToken = data.accessToken;
-                    document.getElementById('token').value = globalToken;
-                    resultEl.innerHTML = `
-                        <strong>Success!</strong><br>
-                        Token: ${data.accessToken.substring(0, 20)}...<br>
-                        User: ${data.username} (ID: ${data.userId})
-                    `;
-                    resultEl.className = 'success';
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-            } catch (error) {
-                resultEl.innerHTML = `<strong>Error:</strong> ${error.message}`;
-                resultEl.className = 'error';
-            }
+            apiCall('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
         }
 
-        async function register() {
+        function register() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const resultEl = document.getElementById('result');
-
-            try {
-                resultEl.innerHTML = 'Registering...';
-                const response = await fetch('http://localhost:3000/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    globalToken = data.accessToken;
-                    document.getElementById('token').value = globalToken;
-                    resultEl.innerHTML = `
-                        <strong>Registered & Logged in!</strong><br>
-                        Token: ${data.accessToken.substring(0, 20)}...<br>
-                        User: ${data.username} (ID: ${data.userId})
-                    `;
-                    resultEl.className = 'success';
-                } else {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || `HTTP ${response.status}`);
-                }
-            } catch (error) {
-                resultEl.innerHTML = `<strong>Error:</strong> ${error.message}`;
-                resultEl.className = 'error';
-            }
+            apiCall('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
         }
 
-        async function getProfile() {
-            const token = document.getElementById('token').value || globalToken;
-            const resultEl = document.getElementById('result');
-
-            try {
-                resultEl.innerHTML = 'Fetching profile...';
-                const response = await fetch('http://localhost:3000/auth/me', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    resultEl.innerHTML = `<strong>Profile:</strong><br>${JSON.stringify(data, null, 2)}`;
-                    resultEl.className = 'success';
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-            } catch (error) {
-                resultEl.innerHTML = `<strong>Error:</strong> ${error.message}`;
-                resultEl.className = 'error';
-            }
+        function getUser1() {
+            apiCall('/users/1');
         }
 
-        async function getUser1() {
-            const token = document.getElementById('token').value || globalToken;
-            const resultEl = document.getElementById('result');
-
-            try {
-                resultEl.innerHTML = 'Fetching user 1...';
-                const response = await fetch('http://localhost:3000/users/1', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    resultEl.innerHTML = `<strong>User 1:</strong><br>${JSON.stringify(data, null, 2)}`;
-                    resultEl.className = 'success';
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-            } catch (error) {
-                resultEl.innerHTML = `<strong>Error:</strong> ${error.message}`;
-                resultEl.className = 'error';
-            }
+        function copyToken() {
+            navigator.clipboard.writeText(document.getElementById('token').value).then(() => {
+                const btn = event.target.closest('button');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check text-green-400"></i>';
+                setTimeout(() => btn.innerHTML = originalHTML, 1500);
+            });
         }
     </script>
 </body>
-
 </html>
