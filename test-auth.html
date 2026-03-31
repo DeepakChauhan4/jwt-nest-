@@ -60,10 +60,16 @@
     <input type="text" id="username" placeholder="Username" value="john">
     <input type="password" id="password" placeholder="Password" value="changeme">
     <button onclick="login()">Login</button>
+    <button onclick="register()">Register</button>
+    <input type="text" id="token" placeholder="Paste token here">
+    <button onclick="getProfile()">Get Profile (/auth/me)</button>
+    <button onclick="getUser1()">Get User 1 (/users/1)</button>
 
     <div id="result"></div>
 
     <script>
+        let globalToken = '';
+
         async function login() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
@@ -81,20 +87,99 @@
 
                 if (response.ok) {
                     const data = await response.json();
+                    globalToken = data.accessToken;
+                    document.getElementById('token').value = globalToken;
                     resultEl.innerHTML = `
                         <strong>Success!</strong><br>
-                        Token: ${data.accessToken}<br>
+                        Token: ${data.accessToken.substring(0, 20)}...<br>
                         User: ${data.username} (ID: ${data.userId})
                     `;
                     resultEl.className = 'success';
-                    console.log('Auth result:', data);
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
             } catch (error) {
-                resultEl.innerHTML = `<strong>Error:</strong> ${error.message}<br>${error}`;
+                resultEl.innerHTML = `<strong>Error:</strong> ${error.message}`;
                 resultEl.className = 'error';
-                console.error('Login failed:', error);
+            }
+        }
+
+        async function register() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultEl = document.getElementById('result');
+
+            try {
+                resultEl.innerHTML = 'Registering...';
+                const response = await fetch('http://localhost:3000/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    globalToken = data.accessToken;
+                    document.getElementById('token').value = globalToken;
+                    resultEl.innerHTML = `
+                        <strong>Registered & Logged in!</strong><br>
+                        Token: ${data.accessToken.substring(0, 20)}...<br>
+                        User: ${data.username} (ID: ${data.userId})
+                    `;
+                    resultEl.className = 'success';
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+            } catch (error) {
+                resultEl.innerHTML = `<strong>Error:</strong> ${error.message}`;
+                resultEl.className = 'error';
+            }
+        }
+
+        async function getProfile() {
+            const token = document.getElementById('token').value || globalToken;
+            const resultEl = document.getElementById('result');
+
+            try {
+                resultEl.innerHTML = 'Fetching profile...';
+                const response = await fetch('http://localhost:3000/auth/me', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultEl.innerHTML = `<strong>Profile:</strong><br>${JSON.stringify(data, null, 2)}`;
+                    resultEl.className = 'success';
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                resultEl.innerHTML = `<strong>Error:</strong> ${error.message}`;
+                resultEl.className = 'error';
+            }
+        }
+
+        async function getUser1() {
+            const token = document.getElementById('token').value || globalToken;
+            const resultEl = document.getElementById('result');
+
+            try {
+                resultEl.innerHTML = 'Fetching user 1...';
+                const response = await fetch('http://localhost:3000/users/1', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultEl.innerHTML = `<strong>User 1:</strong><br>${JSON.stringify(data, null, 2)}`;
+                    resultEl.className = 'success';
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                resultEl.innerHTML = `<strong>Error:</strong> ${error.message}`;
+                resultEl.className = 'error';
             }
         }
     </script>
